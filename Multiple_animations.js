@@ -53,6 +53,7 @@ function loadFBX() {
   loader.load('models/Plane.fbx', function(object) {
     object.scale.set(0.02, 0.02, 0.02);
     object.position.set(0, 35, 120);
+    object.rotation.y = Math.PI;
     object.traverse(function(child) {
       if (child.isMesh) {
         child.castShadow = true;
@@ -169,26 +170,38 @@ function clearAllRobots() {
   // robotNames = 1;
 }
 
-function onMouseDown(event) {
-  // mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  // mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-  //
-  // // Update the picking ray with the camera and mouse position
-  // raycaster.setFromCamera(mouse, camera);
-  //
-  // var intersects = raycaster.intersectObjects(scene.children, true);
-  //
-  // if (intersects.length > 1) {
-  //   if (gameOn) {
-  //     intersects[0].object.parent.name = "eliminado";
-  //     score++;
-  //     document.getElementById("score").innerHTML = score.toString() + " pts";
-  //   } else {
-  //     // console.log("Toco al objeto pero no ha comenzado el juego");
-  //   }
-  // } else {
-  //   // console.log("No toco nada");
-  // }
+function onDocumentKeyDown(event) {
+  var keyCode = event.which;
+
+  // BOTON ARRIBA
+  if (keyCode == 38) {
+    plane_idle.position.y += 0.4;
+    plane_idle.rotation.x = Math.PI / 30;
+  }
+
+  // BOTON ABAJO
+  else if (keyCode == 40) {
+    plane_idle.position.y -= 0.4;
+    plane_idle.rotation.x = -Math.PI / 5;
+  }
+
+  // BOTON IZQUIERDA
+  else if (keyCode == 37) {
+    plane_idle.position.x -= 0.4;
+    plane_idle.rotation.z = -Math.PI / 5;
+  }
+
+  // BOTON DERECHA
+  else if (keyCode == 39) {
+    plane_idle.position.x += 0.4;
+    plane_idle.rotation.z = Math.PI / 5;
+  }
+
+  // BOTON DERECHA
+  else if (keyCode == 32) {
+    console.log("Disparo");
+  }
+
 }
 
 function onWindowResize() {
@@ -256,7 +269,7 @@ function createScene(canvas) {
   root = new THREE.Object3D;
 
   spotLight = new THREE.SpotLight(0xffffff);
-  spotLight.position.set(0, 80, 110);
+  spotLight.position.set(0, 80, 150);
   spotLight.target.position.set(-2, 0, -2);
   root.add(spotLight);
 
@@ -307,5 +320,5 @@ function createScene(canvas) {
   // Now add the group to our scene
   scene.add(root);
 
-  window.addEventListener('mousedown', onMouseDown);
+  document.addEventListener("keydown", onDocumentKeyDown, false);
 }
