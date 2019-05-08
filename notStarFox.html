@@ -21,9 +21,11 @@
     <script src="../Course-material/Code-samples/libs/three.js/loaders/FBXLoader.js"></script>
     <script src="../Course-material/Code-samples/libs/three.js/utils/cloneFBX.js"></script>
 
-    <script src="../Course-material/Code-samples/libs/keyframe.js/keyframe.js"></script>
 
-    <script src="Multiple_animations.js"></script>
+    <script src="../Course-material/Code-samples/libs/keyframe.js/keyframe.js"></script>
+    <script src="../Course-material/Code-samples/libs/tween.js/tween.js"></script>
+
+    <script src="notStarFox.js"></script>
 
     <script type="text/javascript">
       function initControls() {
@@ -46,6 +48,9 @@
 
           // initialize the controls
           initControls();
+
+          // Play the grass movement
+          playGrass();
 
           // Run the run loop
           run();
