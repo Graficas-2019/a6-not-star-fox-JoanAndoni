@@ -30,11 +30,11 @@ body {
   top: 60px;
 }
 
-#score {
+#life {
   position: absolute;
   font-size: 1em;
   left: 25px;
-  top: 85px;
+  top: 88px;
 }
 
 #start {

@@ -4,7 +4,14 @@ var renderer = null,
   camera = null,
   root = null,
   plane_idle = null,
+  planeLife = 100,
+  planeCollider = null,
+  planeBox = null,
+  displayPlaneBoxHelper = false,
+  crashDamage = 15,
+  shootEnemy = 5,
   helicopter_idle = null,
+  bullet_idle = null,
   group = null;
 
 // VARIABLES FOR THE GAME
@@ -32,8 +39,7 @@ var duration = 20000, // ms
 
 // VARIABLES FOR THE GAME TIME
 var gameTime = 40, // 40 seg
-  time = 0,
-  score = 0;
+  time = 0;
 
 // VARIABLES FOR THE GRASS MOVEMENT
 var animateGrass = true,
@@ -76,8 +82,13 @@ function loadAirplaneFBX() {
     });
 
     plane_idle = object;
-
     scene.add(plane_idle);
+
+    planeBox = new THREE.BoxHelper(plane_idle, 0x00ff00);
+    planeBox.update();
+    planeBox.visible = displayPlaneBoxHelper;
+
+    scene.add(planeBox);
   });
 }
 
@@ -93,10 +104,22 @@ function loadHelicopterFBX() {
         child.receiveShadow = true;
       }
     });
-
     helicopter_idle = object;
+  });
+}
 
-    // scene.add(helicopter_idle);
+function loadBulletFBX() {
+  var loader = new THREE.FBXLoader();
+  loader.load('models/Bullet.fbx', function(object) {
+    object.scale.set(0.8, 0.8, 0.8);
+    object.rotation.x = -Math.PI / 2;
+    object.traverse(function(child) {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+    bullet_idle = object;
   });
 }
 
@@ -106,7 +129,7 @@ function timer() {
   intervalTimer = window.setInterval(function() {
     time.innerHTML = (gameTime - contador_s).toString() + " seg";
     contador_s++;
-    if (contador_s === gameTime) {
+    if (contador_s === gameTime || planeLife <= 0) {
       gameOn = true;
       startGame();
     }
@@ -116,17 +139,18 @@ function timer() {
 function startGame() {
   if (!gameOn) {
     gameOn = true;
-    score = 0;
-    document.getElementById("score").innerHTML = score.toString() + " pts";
     timer();
     createHelicopters();
     document.getElementById("start").value = "Stop";
   } else {
     clearAllHelicopters();
+    clearAllBullets();
     window.clearInterval(intervalTimer);
     window.clearInterval(intervalCreateHelicopters);
     gameOn = false;
     time = 40;
+    planeLife = 100;
+    document.getElementById("life").innerHTML = planeLife.toString() + " %";
     document.getElementById("start").value = "Start";
     document.getElementById("time").innerHTML = time.toString() + " seg";
   }
@@ -135,6 +159,9 @@ function startGame() {
 function animate() {
   // Update the animations
   KF.update();
+
+  // Update the box
+  planeBox.update();
 
   var now = Date.now();
   var deltat = now - currentTime;
@@ -145,20 +172,51 @@ function animate() {
   }
 
   if (helicopters.length > 0 && gameOn) {
+    // CREAR EL COLLIDER DE LA NAVE
+    planeCollider = new THREE.Box3().setFromObject(plane_idle);
+
     // EL JUEGO ESTA CORRIENDO
-    helicopters.forEach((helicopter, index) => {
-      helicopters[index].position.z += deltat * 0.055;
+    helicopters.forEach((helicopter, indexHelicopters) => {
+      var helicopterCollider = new THREE.Box3().setFromObject(helicopter);
+
+      bullets.forEach((bullet, indexBullets) => {
+        var bulletCollider = new THREE.Box3().setFromObject(bullet);
+
+        if (helicopterCollider.intersectsBox(bulletCollider)) {
+          scene.remove(helicopter);
+          scene.remove(bullet);
+          helicopters.splice(indexHelicopters, 1);
+          bullets.splice(indexBullets, 1);
+          planeLife += shootEnemy;
+          document.getElementById("life").innerHTML = planeLife.toString() + " %";
+        }
+      });
+
+      if (planeCollider.intersectsBox(helicopterCollider)) {
+        scene.remove(helicopter);
+        helicopters.splice(indexHelicopters, 1);
+        planeLife -= crashDamage;
+        document.getElementById("life").innerHTML = planeLife.toString() + " %";
+      }
+
+      helicopter.position.z += deltat * 0.055;
+
       if (helicopter.position.z >= maxZ) {
         scene.remove(helicopter);
-        helicopters.splice(index, 1);
-        score -= 1;
-        document.getElementById("score").innerHTML = score.toString() + " pts";
+        helicopters.splice(indexHelicopters, 1);
       }
-      if (helicopter.name === "eliminado") {
-        scene.remove(helicopter);
-        helicopters.splice(index, 1);
-      }
+
     });
+
+    bullets.forEach((bullet, index) => {
+      bullet.position.z -= deltat * 0.055;
+
+      if (bullet.position.z <= minZ) {
+        // console.log("Se fue la bala " + bullet.name.toString());
+        scene.remove(bullet);
+        bullets.splice(index, 1);
+      }
+    })
   }
 
   if (helicopters.length === 0 && !gameOn) {
@@ -190,6 +248,25 @@ function clearAllHelicopters() {
   });
   helicopters = [];
   helicopterNames = 1;
+}
+
+function clearAllBullets() {
+  bullets.forEach((bullet) => {
+    scene.remove(bullet);
+  });
+  bullets = [];
+  bulletNames = 1;
+}
+
+function shoot() {
+  if (gameOn) {
+    var newBullet = cloneFbx(bullet_idle);
+    newBullet.position.set(plane_idle.position.x, plane_idle.position.y, plane_idle.position.z);
+    newBullet.name = bulletNames.toString();
+    scene.add(newBullet);
+    bullets.push(newBullet);
+    bulletNames += 1;
+  }
 }
 
 function playGrass() {
@@ -258,9 +335,9 @@ function onDocumentKeyDown(event) {
     }
   }
 
-  // ESPACIO
-  else if (keyCode == 32) {
-    console.log("Disparo");
+  // Key: Z
+  if (keyCode == 90) {
+    shoot();
   }
 
 }
@@ -355,6 +432,7 @@ function createScene(canvas) {
   // Create the objects
   loadHelicopterFBX();
   loadAirplaneFBX();
+  loadBulletFBX();
 
   // Create a group to hold the objects
   group = new THREE.Object3D;
